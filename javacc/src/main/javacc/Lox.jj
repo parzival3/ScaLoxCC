@@ -66,7 +66,7 @@ Stmt printStatement() : {Expr value;} {
   value = expression() <SEMICOLON> { return Print(value); }
 }
 
-Stmt expressionStatement() : {Stmt value} {
+Stmt expressionStatement() : {Stmt value;} {
   value = expression() <SEMICOLON> { return Expression(value); }
 }
 
