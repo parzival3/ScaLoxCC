@@ -1,9 +1,12 @@
 PARSER_BEGIN(SyntaxChecker)
+import java.util.List;
+import java.util.ArrayList;
+
 
 public class SyntaxChecker {
     public static void main(String[] args) {
         try {
-            Expr hello = new SyntaxChecker(new java.io.StringReader(args[0])).expression();
+            List<Stmt> hello = new SyntaxChecker(new java.io.StringReader(args[0])).program();
             System.out.println("Syntax is okay");
         } catch (Throwable e) {
             // Catching Throwable is ugly but JavaCC throws Error objects!
@@ -57,21 +60,28 @@ TOKEN: {
        <NUMBER: (["0"-"9"])+ (".")? (["0"-"9"])* >
 }
 
+List<Stmt> program(): {List<Stmt> statements = new ArrayList<>(); Stmt s;} {
+    (
+     s = statement()
+     {statements.add(s);}
+    ) *  <EOF>  {return statements;}
+}
+
 Stmt statement(): {Stmt s;} {
-  <PRINT> s = printStatement() { return s; }
-  | s = expressionStatement() { return s; }
+  <PRINT> s = printStatement() <SEMICOLON> { return s; }
+  | s = expressionStatement() <SEMICOLON> { return s; }
 }
 
 Stmt printStatement() : {Expr value;} {
-  value = expression() <SEMICOLON> { return Print(value); }
+  value = expression()  { return new Print(value); }
 }
 
-Stmt expressionStatement() : {Stmt value;} {
-  value = expression() <SEMICOLON> { return Expression(value); }
+Stmt expressionStatement() : {Expr value;} {
+  value = expression() { return new Expression(value); }
 }
 
 Expr expression(): {Expr e;} {
-  e = equality() <EOF> { return e; }
+  e = equality() { return e; }
 }
 
 TokenType EQUALS_OP() : {} {

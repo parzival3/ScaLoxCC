@@ -1,6 +1,8 @@
 sealed trait Stmt
 case class Block(statements: List[Stmt]) extends Stmt
-case class Class(name: TokenType, Variable: superclass, methods: List[Function]) extends Stmt
+case class Class(name: TokenType, superclass: Variable, methods: List[Function]) extends Stmt
+case class Function(name: TokenType, params: List[TokenType], body: List[Stmt]) extends Stmt
+case class Print(expr: Expr) extends Stmt
 case class Expression(expr: Expr) extends Stmt
 
 /**

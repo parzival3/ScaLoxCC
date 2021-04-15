@@ -7,4 +7,10 @@ class Test1 {
     val tree: Expr =  new SyntaxChecker(new java.io.StringReader(test_expression)).expression()
     println(prettyPrint(tree))
   }
+
+  @Test def statement(): Unit = {
+    val test_statement =  "print 3;"
+    val tree: java.util.List[Stmt] =  new SyntaxChecker(new java.io.StringReader(test_statement)).program()
+    println(tree)
+  }
 }
