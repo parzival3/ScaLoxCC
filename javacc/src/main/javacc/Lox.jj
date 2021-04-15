@@ -1,0 +1,154 @@
+PARSER_BEGIN(SyntaxChecker)
+
+public class SyntaxChecker {
+    public static void main(String[] args) {
+        try {
+            Expr hello = new SyntaxChecker(new java.io.StringReader(args[0])).expression();
+            System.out.println("Syntax is okay");
+        } catch (Throwable e) {
+            // Catching Throwable is ugly but JavaCC throws Error objects!
+            System.out.println("Syntax check failed: " + e.getMessage());
+        }
+    }
+}
+
+PARSER_END(SyntaxChecker)
+
+SKIP:  { " " | "\t" | "\n" | "\r" }
+
+TOKEN: {
+       <LEFT_PAREN: "(">  |
+       <RIGHT_PAREN: ")"> |
+       <LEFT_BRACE: "{">  |
+       <RIGHT_BRACE: "}">  |
+       <COMMA: ",">  |
+       <DOT: ".">  |
+       <MINUS: "-">  |
+       <PLUS: "+">  |
+       <SEMICOLON: ";">  |
+       <SLASH: "/">  |
+       <STAR: "*">        |
+       <BANG: "!">        |
+       <BANG_EQUAL: "!=">        |
+       <EQUAL: "=">        |
+       <EQUAL_EQUAL: "==">        |
+       <GREATER: ">">        |
+       <GREATER_EQUAL: ">=">        |
+       <LESS: "<">        |
+       <LESS_EQUAL: "<=">        |
+       <STRING: "\"" (<ESC> | ~["\"","\\","\n","\r"])* "\"" > |
+       < #ESC: "\\" ["n","t","b","r","f","\\","'","\""] > |
+       <AND: "and">        |
+       <CLASS: "class">        |
+       <FALSE: "false">        |
+       <FOR: "for">        |
+       <FUN: "fun">        |
+       <IF: "if">        |
+       <NIL: "nil">        |
+       <OR: "or">        |
+       <PRINT: "print">        |
+       <RETURN: "return">        |
+       <SUPER: "super">        |
+       <THIS: "this">        |
+       <TRUE: "true">        |
+       <VAR: "var">        |
+       <WHILE: "while">        |
+       <IDENTIFIER: (["a"-"z","A"-"Z","_"]) (["a"-"z","A"-"Z","_","0"-"9"])* >        |
+       <NUMBER: (["0"-"9"])+ (".")? (["0"-"9"])* >
+}
+
+Stmt statement(): {Stmt s;} {
+  <PRINT> s = printStatement() { return s; }
+  | s = expressionStatement() { return s; }
+}
+
+Stmt printStatement() : {Expr value;} {
+  value = expression() <SEMICOLON> { return Print(value); }
+}
+
+Stmt expressionStatement() : {Stmt value} {
+  value = expression() <SEMICOLON> { return Expression(value); }
+}
+
+Expr expression(): {Expr e;} {
+  e = equality() <EOF> { return e; }
+}
+
+TokenType EQUALS_OP() : {} {
+      <BANG_EQUAL> {return TokenType.BANG_EQUAL;}
+    | <EQUAL_EQUAL> {return TokenType.EQUAL_EQUAL;}
+}
+
+Expr equality(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = comparison() (
+        op = EQUALS_OP()
+        e2 = comparison()
+        {e1 = new Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType COMPARISON_OP() : {} {
+     <GREATER> {return TokenType.GREATER;}
+   | <GREATER_EQUAL> {return TokenType.GREATER_EQUAL;}
+   | <LESS> {return TokenType.LESS;}
+   | <LESS_EQUAL> {return TokenType.LESS_EQUAL;}
+}
+
+Expr comparison(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = term() (
+        op = COMPARISON_OP()
+        e2 = term()
+        {e1 = new Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType ADD_OP() : {} {
+     <MINUS> {return TokenType.MINUS;}
+   | <PLUS> {return TokenType.PLUS;}
+}
+
+Expr term(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = factor() (
+        op = ADD_OP()
+        e2 = factor()
+        {e1 = new Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType MUL_OP() : {} {
+      <STAR> {return TokenType.STAR;}
+    | <SLASH> {return TokenType.SLASH;}
+}
+
+Expr factor(): {Expr e1; Expr e2; TokenType op;} {
+     e1 = unary() (
+        op = MUL_OP()
+        e2 = unary()
+        {e1 = new Binary(e1, op, e2);}
+    )* {return e1;}
+}
+
+TokenType UNARY_OP() : {} {
+      <BANG> {return TokenType.BANG;}
+    | <MINUS> {return TokenType.MINUS;}
+}
+
+Expr simbol_unary(): {Expr e1; TokenType op;} {
+      op = UNARY_OP()
+      e1 = unary()
+      {return new Unary(op, e1);}
+}
+
+Expr unary(): {Expr e1; TokenType op;} {
+       e1 = simbol_unary() {return e1;}
+    |  e1 = primary() {return e1;}
+}
+
+Expr primary(): {Expr e1; Token t;} {
+      t = <NUMBER> { e1 = new Literal(Double.parseDouble(t.image)); return e1;}
+    | t = <STRING> { e1 = new Literal(t.image); return e1; }
+    | <TRUE> { e1 = new Literal(true); return e1;}
+    | <FALSE> <TRUE> { e1 = new Literal(true); return e1; }
+    | <NIL>{ e1 =  new Literal(null); return e1;}
+    | <LEFT_PAREN> e1 = term()  <RIGHT_PAREN> {return e1;}
+}
