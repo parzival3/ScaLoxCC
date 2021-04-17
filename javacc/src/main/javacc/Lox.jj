@@ -1,6 +1,7 @@
 PARSER_BEGIN(SyntaxChecker)
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class SyntaxChecker {
@@ -47,6 +48,7 @@ TOKEN: {
        <FOR: "for">        |
        <FUN: "fun">        |
        <IF: "if">        |
+       <ELSE: "else">        |
        <NIL: "nil">        |
        <OR: "or">        |
        <PRINT: "print">        |
@@ -62,14 +64,82 @@ TOKEN: {
 
 List<Stmt> program(): {List<Stmt> statements = new ArrayList<>(); Stmt s;} {
     (
-     s = statement()
+     s = declaration()
      {statements.add(s);}
     ) *  <EOF>  {return statements;}
 }
 
-Stmt statement(): {Stmt s;} {
-  <PRINT> s = printStatement() <SEMICOLON> { return s; }
-  | s = expressionStatement() <SEMICOLON> { return s; }
+Stmt declaration(): {Stmt s;} {
+    s = valDeclaration() {return s;}
+    | s = statement() {return s;}
+}
+
+Stmt valDeclaration(): {Expr e;} {
+    <VAR> <IDENTIFIER>   (<EQUAL> e = expression())+ <SEMICOLON> {return new Var(TokenType.VAR, e);}
+}
+
+Stmt statement(): {Stmt s; List<Stmt> statements = new ArrayList<>(); } {
+   s = expressionStatement() <SEMICOLON> { return s; }
+  | s = forStmt() { return s;}
+  | s = ifStmt() { return s; }
+  | <PRINT> s = printStatement() <SEMICOLON> { return s; }
+  | s = whileStmt() { return s; }
+  | statements = block() {return new Block(statements);}
+}
+scala.Option<Stmt> forInitializer(): {Stmt s;} {
+     <SEMICOLON> {return scala.Option.apply(null);}
+   | s = valDeclaration() <SEMICOLON> {return scala.Option.apply(s);}
+   | s = expressionStatement() <SEMICOLON> {return scala.Option.apply(s);}
+}
+
+scala.Option<Expr> forCondition(): {Expr e;} {
+     <SEMICOLON> {return scala.Option.apply(null);}
+   | e = expression() <SEMICOLON> {return scala.Option.apply(e);}
+}
+
+scala.Option<Expr> forIncrement(): {Expr e = null;} {
+   (e = expression())? {return scala.Option.apply(e);}
+}
+
+Stmt forStmt(): {Stmt body; scala.Option<Stmt> initializer; scala.Option<Expr> condition; scala.Option<Expr> increment;} {
+    <FOR> <LEFT_PAREN>
+    initializer = forInitializer()
+    condition = forCondition()
+    increment = forIncrement()
+    <RIGHT_PAREN>
+    body = statement() {
+        if (!increment.isEmpty()) {
+            body = new Block(Arrays.asList(body, new Expression(increment.get())));
+        }
+
+        if (!condition.isEmpty()) {
+           body = new While(condition.get(), body);
+        }
+        if (!initializer.isEmpty()) {
+           body = new Block(Arrays.asList(initializer.get(), body));
+        }
+
+        return body;
+    }
+
+}
+
+
+Stmt whileStmt(): {Expr e; Stmt s;} {
+    <WHILE> <LEFT_PAREN>
+    e = expression()
+    <RIGHT_PAREN>  s = statement() {return new While(e, s);}
+}
+
+Stmt ifStmt(): {Expr e; Stmt ifBranch; Stmt elseBranch = null;} {
+    <IF> <LEFT_PAREN> e = expression() <RIGHT_PAREN>
+        ifBranch = statement()
+    (<ELSE> elseBranch = statement())?
+    {return new If(e, ifBranch, scala.Option.apply(elseBranch));}
+}
+
+List<Stmt> block(): { Stmt s; List<Stmt> statements = new ArrayList<>(); } {
+    <LEFT_BRACE> (s = declaration() {statements.add(s);})* <RIGHT_BRACE> {return statements;}
 }
 
 Stmt printStatement() : {Expr value;} {
@@ -81,7 +151,28 @@ Stmt expressionStatement() : {Expr value;} {
 }
 
 Expr expression(): {Expr e;} {
-  e = equality() { return e; }
+    e = assignment() { return e; }
+}
+
+Expr assignment(): {Expr e;} {
+    LOOKAHEAD(2)  <IDENTIFIER> <EQUAL> e = assignment() {return new Assign(TokenType.VAR, e);}
+    | e = logicOR() {return e;}
+}
+
+Expr logicOR(): {Expr left; Expr right;} {
+    left = logicAND() (
+       <OR> right = logicAND()
+       {left = new Logical(left, TokenType.OR, right);}
+    )*
+    {return left;}
+}
+
+Expr logicAND(): {Expr left; Expr right;} {
+    left = equality() (
+        <AND> right = equality()
+        {left = new Logical(left, TokenType.AND, right);}
+    )*
+    {return left;}
 }
 
 TokenType EQUALS_OP() : {} {
@@ -161,4 +252,5 @@ Expr primary(): {Expr e1; Token t;} {
     | <FALSE> <TRUE> { e1 = new Literal(true); return e1; }
     | <NIL>{ e1 =  new Literal(null); return e1;}
     | <LEFT_PAREN> e1 = term()  <RIGHT_PAREN> {return e1;}
+    | t = <IDENTIFIER> {return new Variable(TokenType.VAR);}
 }
