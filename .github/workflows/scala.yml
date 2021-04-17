@@ -23,6 +23,5 @@ jobs:
       run: |
         sudo apt-get -y install javacc
     - name: Run tests
-      working-directory: Java-CC/sbt-project/Lox/loxparser
       run: sbt javacc
          | sbt test
