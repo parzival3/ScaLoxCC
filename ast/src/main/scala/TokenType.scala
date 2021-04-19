@@ -1,3 +1,5 @@
+package io.github.parzival3.scaloxcc.ast
+
 // This is necessary to use the enum in Java
 // https://dotty.epfl.ch/docs/reference/enums/enums.html#compatibility-with-java-enums
 enum TokenType extends Enum[TokenType] {

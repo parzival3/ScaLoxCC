@@ -1,4 +1,7 @@
 PARSER_BEGIN(SyntaxChecker)
+package io.github.parzival3.scaloxcc.javacc;
+
+import io.github.parzival3.scaloxcc.ast.*;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +21,8 @@ public class SyntaxChecker {
 
 PARSER_END(SyntaxChecker)
 
-SKIP:  { " " | "\t" | "\n" | "\r" }
+SKIP:  {" " | "\t" | "\n" | "\r" }
+SKIP:  {<"//" (~["\r", "\n"])*>}
 
 TOKEN: {
        <LEFT_PAREN: "(">  |
@@ -70,11 +74,29 @@ List<Stmt> program(): {List<Stmt> statements = new ArrayList<>(); Stmt s;} {
 }
 
 Stmt declaration(): {Stmt s;} {
-    s = valDeclaration() {return s;}
+    s = varDeclaration() {return s;}
+    | s = funDeclaration() {return s;}
     | s = statement() {return s;}
 }
 
-Stmt valDeclaration(): {Expr e;} {
+Stmt funDeclaration(): {Stmt s;} {
+    <FUN> s = function() {return s;}
+}
+
+List<Expr> parameters(): {Token token; List<Expr> t = new ArrayList<Expr>();} {
+   token = <IDENTIFIER> {t.add(new Literal(token.image));} (
+      <COMMA>
+      token = <IDENTIFIER>
+      {t.add(new Literal(token.image));}
+   )* {return t;}
+}
+
+Stmt function(): {Token name; List<Stmt> b; List<Expr> params = new ArrayList<Expr>();} {
+   name = <IDENTIFIER> <LEFT_PAREN> (params = parameters())* <RIGHT_PAREN> b = block()
+   {return new Function(new Literal(name.image), params, b);}
+}
+
+Stmt varDeclaration(): {Expr e;} {
     <VAR> <IDENTIFIER>   (<EQUAL> e = expression())+ <SEMICOLON> {return new Var(TokenType.VAR, e);}
 }
 
@@ -88,7 +110,7 @@ Stmt statement(): {Stmt s; List<Stmt> statements = new ArrayList<>(); } {
 }
 scala.Option<Stmt> forInitializer(): {Stmt s;} {
      <SEMICOLON> {return scala.Option.apply(null);}
-   | s = valDeclaration() <SEMICOLON> {return scala.Option.apply(s);}
+   | s = varDeclaration() <SEMICOLON> {return scala.Option.apply(s);}
    | s = expressionStatement() <SEMICOLON> {return scala.Option.apply(s);}
 }
 
@@ -243,6 +265,19 @@ Expr simbol_unary(): {Expr e1; TokenType op;} {
 Expr unary(): {Expr e1; TokenType op;} {
        e1 = simbol_unary() {return e1;}
     |  e1 = primary() {return e1;}
+}
+
+List<Expr> arguments(): {Expr e; List<Expr> args = new ArrayList<Expr>();} {
+   e = expression() {args.add(e);}
+   (
+      <COMMA>
+      e = expression() {args.add(e);}
+   )*
+   {return args;}
+}
+
+Expr call(): {Expr e; List<Expr> args = new ArrayList<Expr>(); Expr paren = null;} {
+    e = primary() (<LEFT_PAREN> (args = arguments())? <RIGHT_PAREN> {e = new Call(TokenType.FUN, TokenType.FUN, args); paren = e;})* {return e;}
 }
 
 Expr primary(): {Expr e1; Token t;} {

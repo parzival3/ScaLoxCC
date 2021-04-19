@@ -1,3 +1,8 @@
+package io.github.parzival3.scaloxcc.test
+
+import io.github.parzival3.scaloxcc.ast._
+import io.github.parzival3.scaloxcc.util._
+import io.github.parzival3.scaloxcc.javacc._
 import org.junit.Test
 import org.junit.Assert._
 
