@@ -84,7 +84,7 @@ Stmt funDeclaration(): {Stmt s;} {
 }
 
 List<Expr> formalParameters(): {TokenType token; List<Expr> t = new ArrayList<Expr>();} {
-  <LEFT_PAREN> [ t.add(new Literal(formalParameter()))  ( <COMMA> token = formalParameter() {t.add(new Literal(token.image))})* ] <RIGHT_PAREN>
+  <LEFT_PAREN> [ token = formalParameter() {t.add(new Literal(token.image))} ( <COMMA> token = formalParameter() {t.add(new Literal(token.image))})* ] <RIGHT_PAREN>
    {return t;}
 }
 
