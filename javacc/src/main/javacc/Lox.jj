@@ -74,8 +74,8 @@ List<Stmt> program(): {List<Stmt> statements = new ArrayList<>(); Stmt s;} {
 }
 
 Stmt declaration(): {Stmt s;} {
-    s = varDeclaration() {return s;}
-    | s = funDeclaration() {return s;}
+     s = funDeclaration() {return s;}
+    | s = varDeclaration() {return s;}
     | s = statement() {return s;}
 }
 
@@ -83,16 +83,31 @@ Stmt funDeclaration(): {Stmt s;} {
     <FUN> s = function() {return s;}
 }
 
+List<Expr> formalParameters(): {TokenType token; List<Expr> t = new ArrayList<Expr>();} {
+  <LEFT_PAREN> [ t.add(new Literal(formalParameter()))  ( <COMMA> token = formalParameter() {t.add(new Literal(token.image))})* ] <RIGHT_PAREN>
+   {return t;}
+}
+
+TokenType formalParameter() : {TokenType t;}
+{
+   t = variableDeclaratorId() {return t;}
+}
+
+TokenType variableDeclaratorId() : {TokenType t;}
+{
+  t = <IDENTIFIER>
+}
+
 List<Expr> parameters(): {Token token; List<Expr> t = new ArrayList<Expr>();} {
-   token = <IDENTIFIER> {t.add(new Literal(token.image));} (
+   (token = <IDENTIFIER>)? {t.add(new Literal(token.image));} (
       <COMMA>
       token = <IDENTIFIER>
       {t.add(new Literal(token.image));}
-   )* {return t;}
+   )? {return t;}
 }
 
 Stmt function(): {Token name; List<Stmt> b; List<Expr> params = new ArrayList<Expr>();} {
-   name = <IDENTIFIER> <LEFT_PAREN> (params = parameters())* <RIGHT_PAREN> b = block()
+   name = <IDENTIFIER> formalParameters()
    {return new Function(new Literal(name.image), params, b);}
 }
 
@@ -284,7 +299,7 @@ Expr primary(): {Expr e1; Token t;} {
       t = <NUMBER> { e1 = new Literal(Double.parseDouble(t.image)); return e1;}
     | t = <STRING> { e1 = new Literal(t.image); return e1; }
     | <TRUE> { e1 = new Literal(true); return e1;}
-    | <FALSE> <TRUE> { e1 = new Literal(true); return e1; }
+    | <FALSE> { e1 = new Literal(true); return e1; }
     | <NIL>{ e1 =  new Literal(null); return e1;}
     | <LEFT_PAREN> e1 = term()  <RIGHT_PAREN> {return e1;}
     | t = <IDENTIFIER> {return new Variable(TokenType.VAR);}

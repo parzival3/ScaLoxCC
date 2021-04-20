@@ -10,6 +10,8 @@ import scala.io.Source
 
 class Assignment extends AnyFunSuite with should.Matchers {
 
+  val name = this.toString().toLowerCase()
+
   val passing = List (
    "associativity",
    "global",
@@ -25,22 +27,32 @@ class Assignment extends AnyFunSuite with should.Matchers {
     "to_this"
   )
 
+  val ignored = List ()
+
   passing map ( t =>
 
-    test(s"Test correct parser $t") {
+    test(s"Test correct parser $name : $t") {
         val stream = new java.io.ByteArrayOutputStream()
-        val programFile : Iterator[String] = Source.fromResource(s"assignment/$t.lox").getLines
+        val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
         assert(!SyntaxChecker(new java.io.StringReader(programFile.mkString("\n"))).program().isEmpty())
     }
   )
 
   failing map ( t =>
-    test(s"Test parser assignment $t ") {
+    test(s"Test fail parser assignment $name : $t ") {
         val stream = new java.io.ByteArrayOutputStream()
-        val programFile : Iterator[String] = Source.fromResource(s"assignment/$t.lox").getLines
+        val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
         assertThrows[ParseException] {
           !SyntaxChecker(new java.io.StringReader(programFile.mkString("\n"))).program().isEmpty()
         }
+    }
+  )
+
+  ignored map ( t =>
+    ignore(s"Test fail parser assignment $name : $t ") {
+        val stream = new java.io.ByteArrayOutputStream()
+        val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
+        assert(!SyntaxChecker(new java.io.StringReader(programFile.mkString("\n"))).program().isEmpty())
     }
   )
 
