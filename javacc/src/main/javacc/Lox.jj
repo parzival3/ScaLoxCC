@@ -10,7 +10,7 @@ import java.util.Arrays;
 public class SyntaxChecker {
     public static void main(String[] args) {
         try {
-            List<Stmt> hello = new SyntaxChecker(new java.io.StringReader(args[0])).program();
+            List<Stmt> hello = new SyntaxChecker(new java.io.StringReader(args[0])).compilationUnit();
             System.out.println("Syntax is okay");
         } catch (Throwable e) {
             // Catching Throwable is ugly but JavaCC throws Error objects!
@@ -66,241 +66,20 @@ TOKEN: {
        <NUMBER: (["0"-"9"])+ (".")? (["0"-"9"])* >
 }
 
-List<Stmt> program(): {List<Stmt> statements = new ArrayList<>(); Stmt s;} {
-    (
-     s = declaration()
-     {statements.add(s);}
-    ) *  <EOF>  {return statements;}
-}
 
-Stmt declaration(): {Stmt s;} {
-     s = funDeclaration() {return s;}
-    | s = varDeclaration() {return s;}
-    | s = statement() {return s;}
-}
-
-Stmt funDeclaration(): {Stmt s;} {
-    <FUN> s = function() {return s;}
-}
-
-List<Expr> formalParameters(): {TokenType token; List<Expr> t = new ArrayList<Expr>();} {
-  <LEFT_PAREN> [ token = formalParameter() {t.add(new Literal(token.image))} ( <COMMA> token = formalParameter() {t.add(new Literal(token.image))})* ] <RIGHT_PAREN>
-   {return t;}
-}
-
-TokenType formalParameter() : {TokenType t;}
+List<Stmt> compilationUnit() : { List<Stmt> statements = new ArrayList<>(); Stmt s; }
 {
-   t = variableDeclaratorId() {return t;}
+  ( s = typeDeclaration() { statements.add(s); })*
+  <EOF>
+  { return statements; }
 }
 
-TokenType variableDeclaratorId() : {TokenType t;}
-{
-  t = <IDENTIFIER>
+Stmt typeDeclaration() { Stmt s = null; } {
+   s = classDeclaration()
+  | <SEMICOLON>
+  { return s; }
 }
 
-List<Expr> parameters(): {Token token; List<Expr> t = new ArrayList<Expr>();} {
-   (token = <IDENTIFIER>)? {t.add(new Literal(token.image));} (
-      <COMMA>
-      token = <IDENTIFIER>
-      {t.add(new Literal(token.image));}
-   )? {return t;}
-}
-
-Stmt function(): {Token name; List<Stmt> b; List<Expr> params = new ArrayList<Expr>();} {
-   name = <IDENTIFIER> formalParameters()
-   {return new Function(new Literal(name.image), params, b);}
-}
-
-Stmt varDeclaration(): {Expr e;} {
-    <VAR> <IDENTIFIER>   (<EQUAL> e = expression())+ <SEMICOLON> {return new Var(TokenType.VAR, e);}
-}
-
-Stmt statement(): {Stmt s; List<Stmt> statements = new ArrayList<>(); } {
-   s = expressionStatement() <SEMICOLON> { return s; }
-  | s = forStmt() { return s;}
-  | s = ifStmt() { return s; }
-  | <PRINT> s = printStatement() <SEMICOLON> { return s; }
-  | s = whileStmt() { return s; }
-  | statements = block() {return new Block(statements);}
-}
-scala.Option<Stmt> forInitializer(): {Stmt s;} {
-     <SEMICOLON> {return scala.Option.apply(null);}
-   | s = varDeclaration() <SEMICOLON> {return scala.Option.apply(s);}
-   | s = expressionStatement() <SEMICOLON> {return scala.Option.apply(s);}
-}
-
-scala.Option<Expr> forCondition(): {Expr e;} {
-     <SEMICOLON> {return scala.Option.apply(null);}
-   | e = expression() <SEMICOLON> {return scala.Option.apply(e);}
-}
-
-scala.Option<Expr> forIncrement(): {Expr e = null;} {
-   (e = expression())? {return scala.Option.apply(e);}
-}
-
-Stmt forStmt(): {Stmt body; scala.Option<Stmt> initializer; scala.Option<Expr> condition; scala.Option<Expr> increment;} {
-    <FOR> <LEFT_PAREN>
-    initializer = forInitializer()
-    condition = forCondition()
-    increment = forIncrement()
-    <RIGHT_PAREN>
-    body = statement() {
-        if (!increment.isEmpty()) {
-            body = new Block(Arrays.asList(body, new Expression(increment.get())));
-        }
-
-        if (!condition.isEmpty()) {
-           body = new While(condition.get(), body);
-        }
-        if (!initializer.isEmpty()) {
-           body = new Block(Arrays.asList(initializer.get(), body));
-        }
-
-        return body;
-    }
-
-}
-
-
-Stmt whileStmt(): {Expr e; Stmt s;} {
-    <WHILE> <LEFT_PAREN>
-    e = expression()
-    <RIGHT_PAREN>  s = statement() {return new While(e, s);}
-}
-
-Stmt ifStmt(): {Expr e; Stmt ifBranch; Stmt elseBranch = null;} {
-    <IF> <LEFT_PAREN> e = expression() <RIGHT_PAREN>
-        ifBranch = statement()
-    (<ELSE> elseBranch = statement())?
-    {return new If(e, ifBranch, scala.Option.apply(elseBranch));}
-}
-
-List<Stmt> block(): { Stmt s; List<Stmt> statements = new ArrayList<>(); } {
-    <LEFT_BRACE> (s = declaration() {statements.add(s);})* <RIGHT_BRACE> {return statements;}
-}
-
-Stmt printStatement() : {Expr value;} {
-  value = expression()  { return new Print(value); }
-}
-
-Stmt expressionStatement() : {Expr value;} {
-  value = expression() { return new Expression(value); }
-}
-
-Expr expression(): {Expr e;} {
-    e = assignment() { return e; }
-}
-
-Expr assignment(): {Expr e;} {
-    LOOKAHEAD(2)  <IDENTIFIER> <EQUAL> e = assignment() {return new Assign(TokenType.VAR, e);}
-    | e = logicOR() {return e;}
-}
-
-Expr logicOR(): {Expr left; Expr right;} {
-    left = logicAND() (
-       <OR> right = logicAND()
-       {left = new Logical(left, TokenType.OR, right);}
-    )*
-    {return left;}
-}
-
-Expr logicAND(): {Expr left; Expr right;} {
-    left = equality() (
-        <AND> right = equality()
-        {left = new Logical(left, TokenType.AND, right);}
-    )*
-    {return left;}
-}
-
-TokenType EQUALS_OP() : {} {
-      <BANG_EQUAL> {return TokenType.BANG_EQUAL;}
-    | <EQUAL_EQUAL> {return TokenType.EQUAL_EQUAL;}
-}
-
-Expr equality(): {Expr e1; Expr e2; TokenType op;} {
-     e1 = comparison() (
-        op = EQUALS_OP()
-        e2 = comparison()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-TokenType COMPARISON_OP() : {} {
-     <GREATER> {return TokenType.GREATER;}
-   | <GREATER_EQUAL> {return TokenType.GREATER_EQUAL;}
-   | <LESS> {return TokenType.LESS;}
-   | <LESS_EQUAL> {return TokenType.LESS_EQUAL;}
-}
-
-Expr comparison(): {Expr e1; Expr e2; TokenType op;} {
-     e1 = term() (
-        op = COMPARISON_OP()
-        e2 = term()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-TokenType ADD_OP() : {} {
-     <MINUS> {return TokenType.MINUS;}
-   | <PLUS> {return TokenType.PLUS;}
-}
-
-Expr term(): {Expr e1; Expr e2; TokenType op;} {
-     e1 = factor() (
-        op = ADD_OP()
-        e2 = factor()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-TokenType MUL_OP() : {} {
-      <STAR> {return TokenType.STAR;}
-    | <SLASH> {return TokenType.SLASH;}
-}
-
-Expr factor(): {Expr e1; Expr e2; TokenType op;} {
-     e1 = unary() (
-        op = MUL_OP()
-        e2 = unary()
-        {e1 = new Binary(e1, op, e2);}
-    )* {return e1;}
-}
-
-TokenType UNARY_OP() : {} {
-      <BANG> {return TokenType.BANG;}
-    | <MINUS> {return TokenType.MINUS;}
-}
-
-Expr simbol_unary(): {Expr e1; TokenType op;} {
-      op = UNARY_OP()
-      e1 = unary()
-      {return new Unary(op, e1);}
-}
-
-Expr unary(): {Expr e1; TokenType op;} {
-       e1 = simbol_unary() {return e1;}
-    |  e1 = primary() {return e1;}
-}
-
-List<Expr> arguments(): {Expr e; List<Expr> args = new ArrayList<Expr>();} {
-   e = expression() {args.add(e);}
-   (
-      <COMMA>
-      e = expression() {args.add(e);}
-   )*
-   {return args;}
-}
-
-Expr call(): {Expr e; List<Expr> args = new ArrayList<Expr>(); Expr paren = null;} {
-    e = primary() (<LEFT_PAREN> (args = arguments())? <RIGHT_PAREN> {e = new Call(TokenType.FUN, TokenType.FUN, args); paren = e;})* {return e;}
-}
-
-Expr primary(): {Expr e1; Token t;} {
-      t = <NUMBER> { e1 = new Literal(Double.parseDouble(t.image)); return e1;}
-    | t = <STRING> { e1 = new Literal(t.image); return e1; }
-    | <TRUE> { e1 = new Literal(true); return e1;}
-    | <FALSE> { e1 = new Literal(true); return e1; }
-    | <NIL>{ e1 =  new Literal(null); return e1;}
-    | <LEFT_PAREN> e1 = term()  <RIGHT_PAREN> {return e1;}
-    | t = <IDENTIFIER> {return new Variable(TokenType.VAR);}
+Stmt classDeclaration() { Stmt s; } {
+    <CLASS> <IDENTIFIER> [ <LESS> <IDENTIFIER> ]
 }
