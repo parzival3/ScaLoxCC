@@ -10,7 +10,3 @@ def prettyPrint(expression: Expr): String =
     case Grouping(e) => s"(group ${prettyPrint(e)})"
     case Literal(v) => s"$v"
 
-@main def main(args: String) = {
-        val tree: Expr = new SyntaxChecker(new java.io.StringReader(args)).expression();
-        println(prettyPrint(tree))
-}

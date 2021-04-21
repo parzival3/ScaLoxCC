@@ -30,7 +30,7 @@ class Comments extends AnyFunSuite with should.Matchers {
     test(s"Test correct parser $name : $t") {
         val stream = new java.io.ByteArrayOutputStream()
         val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
-        SyntaxChecker(new java.io.StringReader(programFile.mkString("\n"))).program()
+        Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit()
     }
   )
 
@@ -39,7 +39,7 @@ class Comments extends AnyFunSuite with should.Matchers {
         val stream = new java.io.ByteArrayOutputStream()
         val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
         assertThrows[ParseException] {
-          SyntaxChecker(new java.io.StringReader(programFile.mkString("\n"))).program().isEmpty()
+          Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit().isEmpty()
         }
     }
   )
@@ -48,7 +48,7 @@ class Comments extends AnyFunSuite with should.Matchers {
     ignore(s"Test fail parser assignment $name : $t ") {
         val stream = new java.io.ByteArrayOutputStream()
         val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
-        assert(SyntaxChecker(new java.io.StringReader(programFile.mkString("\n"))).program().isEmpty())
+        assert(Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit().isEmpty())
     }
   )
 

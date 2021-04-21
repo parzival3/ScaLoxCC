@@ -1,4 +1,4 @@
-PARSER_BEGIN(SyntaxChecker)
+PARSER_BEGIN(Parser)
 package io.github.parzival3.scaloxcc.javacc;
 
 import io.github.parzival3.scaloxcc.ast.*;
@@ -7,10 +7,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 
-public class SyntaxChecker {
+public class Parser {
     public static void main(String[] args) {
         try {
-            List<Stmt> hello = new SyntaxChecker(new java.io.StringReader(args[0])).compilationUnit();
+            List<Stmt> hello = new Parser(new java.io.StringReader(args[0])).compilationUnit();
             System.out.println("Syntax is okay");
         } catch (Throwable e) {
             // Catching Throwable is ugly but JavaCC throws Error objects!
@@ -19,7 +19,7 @@ public class SyntaxChecker {
     }
 }
 
-PARSER_END(SyntaxChecker)
+PARSER_END(Parser)
 
 SKIP:  {" " | "\t" | "\n" | "\r" }
 SKIP:  {<"//" (~["\r", "\n"])*>}
@@ -69,17 +69,75 @@ TOKEN: {
 
 List<Stmt> compilationUnit() : { List<Stmt> statements = new ArrayList<>(); Stmt s; }
 {
-  ( s = typeDeclaration() { statements.add(s); })*
-  <EOF>
-  { return statements; }
+    ( s = declaration() { statements.add(s); })*
+    <EOF>
+    { return statements; }
 }
 
-Stmt typeDeclaration() { Stmt s = null; } {
-   s = classDeclaration()
-  | <SEMICOLON>
-  { return s; }
+Stmt declaration() : { Stmt s = null; } {
+    s = classDeclaration()
+    | s = methodDeclaration()
+    | s = variableDeclarator()
+    | <SEMICOLON>
+    { return s; }
 }
 
-Stmt classDeclaration() { Stmt s; } {
-    <CLASS> <IDENTIFIER> [ <LESS> <IDENTIFIER> ]
+Stmt classDeclaration() : { Stmt s = null; Token i = null; Token d = null; List<Stmt> b = new ArrayList<>(); } {
+    <CLASS> i = <IDENTIFIER> [ <LESS> d = <IDENTIFIER> ] b = classBody()
+    {
+        TokenInstance identifier = new TokenInstance(TokenType.IDENTIFIER, i.image, scala.Option.apply(null));
+        TokenInstance derived = new TokenInstance(TokenType.IDENTIFIER, d.image, scala.Option.apply(null));
+        Variable superClass = new Variable(derived);
+        return new LoxClass(identifier, superClass, b);
+    }
+}
+
+List<Stmt> classBody() : { Stmt s; List<Stmt> b = new ArrayList<Stmt>(); } {
+    <LEFT_BRACE> ( s = classBodyDeclaration() { b.add(s); } )* <RIGHT_BRACE>
+    { return b; }
+}
+
+Stmt classBodyDeclaration() : { Stmt m; } {
+    m = methodDeclaration()
+    { return m; }
+}
+
+Stmt methodDeclaration() : { Token name; List<TokenInstance> params = new ArrayList<TokenInstance>(); List<Stmt> b = new ArrayList<Stmt>(); } {
+    <LEFT_BRACE> name = <IDENTIFIER> params = methodDeclarator() ( b = block() | <SEMICOLON> )
+    {
+        TokenInstance fName = new TokenInstance(TokenType.IDENTIFIER, name.image, scala.Option.apply(null));
+        return new Function(fName, params, b);
+    }
+}
+
+List<TokenInstance> methodDeclarator() : { List<TokenInstance> params = new ArrayList<TokenInstance>(); } {
+    params = formalParameters()
+    { return params; }
+}
+
+List<TokenInstance> formalParameters() : { TokenInstance param;  List<TokenInstance> params = new ArrayList<TokenInstance>(); } {
+    <LEFT_PAREN> [ param = formalParameter() { params.add(param); } ( <COMMA> param = formalParameter() { params.add(param); } )* ] <RIGHT_PAREN>
+    { return params; }
+}
+
+TokenInstance formalParameter() : { Token param; } {
+    param = <IDENTIFIER>
+    { return new TokenInstance(TokenType.IDENTIFIER, param.image, scala.Option.apply(null)); }
+}
+
+List<Stmt> block() : { List<Stmt> statements = new ArrayList<Stmt>(); Stmt s = null; } {
+    <LEFT_BRACE> ( s = declaration() { statements.add(s); })* <RIGHT_BRACE>
+    { return statements; }
+}
+
+Stmt variableDeclarator(): {Token n; Expr init = null;} {
+    <VAR> n = <IDENTIFIER> [ <EQUAL> init = expression() ] <SEMICOLON>
+    {
+        TokenInstance name = new TokenInstance(TokenType.IDENTIFIER, name.image, scala.Option.apply(null));
+        return new Var(name, init);
+    }
+}
+
+Expr expression(): {} {
+
 }
