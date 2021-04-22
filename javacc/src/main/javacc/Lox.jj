@@ -140,8 +140,8 @@ Stmt variableDeclarator() : { Token n; Expr init = null; } {
     }
 }
 
-Expr expression() : {} {
-
+Expr expression() : { Expr e; } {
+    e = assignment() { return e; }
 }
 
 Expr assignment() : { Expr c = null; Token t; Expr a; Expr o; } {
@@ -229,4 +229,16 @@ Expr call() : { Expr e; List<TokenInstance> params = new ArrayList<TokenInstance
                        }
                    })*
   { return e; }
+}
+
+Expr primary() : { Expr e = null; Token t = null; } {
+    t = <TRUE> { return new Literal(new TokenInstance(TokenType.TRUE, t.image, scala.Option.apply(true))); }
+    | t = <FALSE>  { return new Literal(new TokenInstance(TokenType.FALSE, t.image, scala.Option.apply(false))); }
+    | t = <NIL>  { return new Literal(new TokenInstance(TokenType.NIL, t.image, scala.Option.apply(null))); }
+    | t = <NUMBER>  { return new Literal(new TokenInstance(TokenType.NUMBER, t.image, scala.Option.apply(Double.parseDouble(t.image)))); }
+    | t = <STRING>  { return new Literal(new TokenInstance(TokenType.NUMBER, t.image, scala.Option.apply(t.image))); }
+    | t = <IDENTIFIER>  { return new Variable(new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(t.image))); }
+    | <LEFT_PAREN> e = expression() <RIGHT_PAREN> { return e; }
+    | <THIS> { return new This(new TokenInstance(TokenType.THIS, t.image, scala.Option.apply(null))); }
+    | <SUPER> <DOT> t = <IDENTIFIER> { return new Super(new TokenInstance(TokenType.SUPER, "super", scala.Option.apply(null)), new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null))); }
 }
