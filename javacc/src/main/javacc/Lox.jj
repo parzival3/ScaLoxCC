@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 
+
 public class Parser {
+
     public static void main(String[] args) {
         try {
             List<Stmt> hello = new Parser(new java.io.StringReader(args[0])).compilationUnit();
@@ -130,7 +132,7 @@ List<Stmt> block() : { List<Stmt> statements = new ArrayList<Stmt>(); Stmt s = n
     { return statements; }
 }
 
-Stmt variableDeclarator(): {Token n; Expr init = null;} {
+Stmt variableDeclarator() : { Token n; Expr init = null; } {
     <VAR> n = <IDENTIFIER> [ <EQUAL> init = expression() ] <SEMICOLON>
     {
         TokenInstance name = new TokenInstance(TokenType.IDENTIFIER, name.image, scala.Option.apply(null));
@@ -138,6 +140,93 @@ Stmt variableDeclarator(): {Token n; Expr init = null;} {
     }
 }
 
-Expr expression(): {} {
+Expr expression() : {} {
 
+}
+
+Expr assignment() : { Expr c = null; Token t; Expr a; Expr o; } {
+   [ c = call() <DOT> ] t <IDENTIFIER> <EQUAL> a = assignement()
+    | o = logicOr():
+    {
+        if ( c == null && a == null ) {
+           return o;
+        } else if ( c == null ) {
+           TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
+           return new Assignment(i, a);
+        } else {
+           TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
+           return new Set(c, i, a);
+        }
+    }
+}
+
+Expr logicOr() : { Expr left; Expr right; TokenInstance t = new TokenInstance(TokenType.OR, "or", scala.Option.apply(null)); } {
+    left = logicAnd() ( <OR> right = logicAnd() { left = new Logical(left, e, right); } )*
+    { return left; }
+}
+
+Expr logicAnd() : { Expr left; Expr right; TokenInstance t = new TokenInstance(TokenType.AND, "and", scala.Option.apply(null)); } {
+    left = equality() ( <AND> right = equality() { left = new Logical(left, e, right); } )*
+    { return left; }
+}
+
+Expr equality() : { Expr left; Expr right; Token t } {
+    left = comparsion() ( ( t = <BANG_EQUAL> | t = <EQUAL_EQUAL> ) right = comparsion()
+                          {
+                              TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+                              left = new Binary(left, token, right);
+                          }) *
+    { return left; }
+}
+
+Expr comparsion() : { Expr left; Expr right; Token t; } {
+    left = comparsion() ( ( t = <LESS> | t = <LESS_EQUAL> | t = <GREATER> | t = <GREATER_EQUAL> ) right = comparsion()
+                          {
+                              TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+                              left = new Binary(left, token, right);
+                          }) *
+    { return left; }
+}
+
+Expr term() : { Expr left; Expr right; Token t; } {
+   left = factor() ( ( t = <MINUS> | t = <PLUS> ) right = factor() {
+           TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+           left = new Binary(left, token, right);
+       } )*
+   { return left; }
+}
+
+Expr factor() : { Expr left; Expr right; Token t; } {
+   left = unary() ( ( t = <SLASH> | t = <START> ) right = factor() {
+           TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+           left = new Binary(left, token, right);
+       } )*
+   { return left; }
+}
+
+Expr unary() : { Expr e; Expr right; Token t = null; } {
+   ( t = <BANG> | t = <MINUS> ) e = unary()
+   | e = call()
+   {
+       if (t == null) {
+           return e;
+       } else {
+           TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+           return new Unary(token, e);
+       }
+   }
+   { return e; }
+}
+
+Expr call() : { Expr e; List<TokenInstance> params = new ArrayList<TokenInstance>(); Token t = null; } {
+   e = primary() ( <LEFT_PAREN> params = methodDeclarator() <RIGHT_PAREN> | <DOT> t = <IDENTIFIER>
+                   {
+                       if ( t = null ) {
+                          e = new Call(e, params);
+                       } else {
+                          TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+                          e = new Get(e, token);
+                       }
+                   })*
+  { return e; }
 }
