@@ -19,9 +19,13 @@ jobs:
       with:
         java-version: '11'
         distribution: 'adopt'
+
     - name: Install package
       run: |
         sudo apt-get -y install javacc
-    - name: Run tests
+
+    - name: Run javacc
       run: sbt javacc
-         | sbt test
+
+    - name: Run tests
+      run: sbt test
