@@ -8,24 +8,27 @@ import matchers._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 
-class If extends AnyFunSuite with should.Matchers {
+class Closure extends AnyFunSuite with should.Matchers {
 
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "dangling_else",
-    "else",
-    "if",
-    "truth",
+    "assign_to_closure",
+    "assign_to_shadowed_later",
+    "closed_closure_in_function",
+    "close_over_function_parameter",
+    "close_over_later_variable",
+    "close_over_method_parameter",
+    "nested_closure",
+    "open_closure_in_function",
+    "reference_closure_multiple_times",
+    "reuse_closure_slot",
+    "shadow_closure_with_local",
+    "unused_closure",
+    "unused_later_closure",
   )
 
   val failing = List (
-    "var_in_then",
-    "var_in_else",
-    "fun_in_then",
-    "fun_in_else",
-    "class_in_else",
-    "class_in_then",
   )
 
   val ignored = List (

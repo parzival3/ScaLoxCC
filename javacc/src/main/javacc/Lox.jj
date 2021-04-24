@@ -81,8 +81,8 @@ List<Stmt> compilationUnit() : { List<Stmt> statements = new ArrayList<>(); Stmt
 }
 
 Stmt declaration() : { Stmt s = null; } {
-    //s = classDeclaration() {return s;}
-   s = functionDeclaration() { return s; }
+   s = classDeclaration() {return s;}
+   | s = functionDeclaration() { return s; }
    | s = variableDeclarator() { return s; }
    | s = statement() { return s; }
 }
@@ -91,9 +91,12 @@ Stmt classDeclaration() : { Stmt s = null; Token i = null; Token d = null; List<
     "class" i = <IDENTIFIER> [ "<" d = <IDENTIFIER> ] b = classBody()
     {
         TokenInstance identifier = new TokenInstance(TokenType.IDENTIFIER, i.image, scala.Option.apply(null));
-        TokenInstance derived = new TokenInstance(TokenType.IDENTIFIER, d.image, scala.Option.apply(null));
-        Variable superClass = new Variable(derived);
-        return new LoxClass(identifier, superClass, b);
+        Variable superClass = null;
+        if (d != null) {
+            TokenInstance derived = new TokenInstance(TokenType.IDENTIFIER, d.image, scala.Option.apply(null));
+            superClass = new Variable(derived);
+        }
+        return new LoxClass(identifier, scala.Option.apply(superClass), b);
     }
 }
 
@@ -267,16 +270,11 @@ Expr term() : { Expr left; Expr right; Token t; } {
 }
 
 Expr factor() : { Expr left; Expr right; Token t; } {
-   left = unary() (  t = factorToken() right = unary() {
+   left = unary() ( (t = "/" | t = "*") right = unary() {
            TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
            left = new Binary(left, token, right);
        } )*
    { return left; }
-}
-
-Token factorToken() : { Token t; } {
-      t = "/" { return t; }
-    | t = "*" { return t; }
 }
 
 Expr unary() : { Expr e; Expr right; Token t = null; } {
@@ -297,7 +295,7 @@ List<Expr> arguments() : { Expr a; List<Expr> args = new ArrayList<Expr>(); } {
 Expr callOrGet(Expr e) : { List<Expr> args = new ArrayList<Expr>(); Token t = null;} {
     args = arguments() { return  new Call(e, args); }
     | "." t = <IDENTIFIER> {
-                          TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+                          TokenInstance token = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
                           return new Get(e, token);
     }
 }
@@ -315,6 +313,6 @@ Expr primary() : { Expr e = null; Token t = null; } {
     | t = <STRING>  { return new Literal(new TokenInstance(TokenType.NUMBER, t.image, scala.Option.apply(t.image))); }
     | t = <IDENTIFIER>  { return new Variable(new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(t.image))); }
     | "(" e = expression() ")" { return e; }
-    | <THIS> { return new This(new TokenInstance(TokenType.THIS, t.image, scala.Option.apply(null))); }
+    | <THIS> { return new This(new TokenInstance(TokenType.THIS, "this", scala.Option.apply(null))); }
     | "super" "." t = <IDENTIFIER> { return new Super(new TokenInstance(TokenType.SUPER, "super", scala.Option.apply(null)), new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null))); }
 }

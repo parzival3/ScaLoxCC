@@ -8,24 +8,21 @@ import matchers._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 
-class If extends AnyFunSuite with should.Matchers {
+class Inheritance extends AnyFunSuite with should.Matchers {
 
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "dangling_else",
-    "else",
-    "if",
-    "truth",
+    "inherit_from_function",
+    "inherit_from_nil",
+    "inherit_from_number",
+    "inherit_methods",
   )
 
   val failing = List (
-    "var_in_then",
-    "var_in_else",
-    "fun_in_then",
-    "fun_in_else",
-    "class_in_else",
-    "class_in_then",
+    "parenthesized_superclass",
+    "set_fields_from_base_class",
+    "constructor",
   )
 
   val ignored = List (

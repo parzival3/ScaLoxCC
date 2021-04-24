@@ -8,24 +8,36 @@ import matchers._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 
-class If extends AnyFunSuite with should.Matchers {
+class Variable extends AnyFunSuite with should.Matchers {
 
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "dangling_else",
-    "else",
-    "if",
-    "truth",
+    "collide_with_parameter",
+    "duplicate_local",
+    "duplicate_parameter",
+    "early_bound",
+    "in_middle_of_block",
+    "in_nested_block",
+    "local_from_method",
+    "redeclare_global",
+    "redefine_global",
+    "scope_reuse_in_different_blocks",
+    "shadow_and_local",
+    "shadow_global",
+    "shadow_local",
+    "undefined_global",
+    "undefined_local",
+    "uninitialized",
+    "unreached_undefined",
+    "use_global_in_initializer",
+    "use_local_in_initializer",
   )
 
   val failing = List (
-    "var_in_then",
-    "var_in_else",
-    "fun_in_then",
-    "fun_in_else",
-    "class_in_else",
-    "class_in_then",
+    "use_nil_as_var",
+    "use_false_as_var",
+    "use_this_as_var",
   )
 
   val ignored = List (

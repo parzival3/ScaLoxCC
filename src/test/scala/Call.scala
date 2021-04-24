@@ -17,13 +17,13 @@ class Call extends AnyFunSuite with should.Matchers {
     "nil",
     "num",
     "string",
+    "object",
   )
 
   val failing = List (
   )
 
   val ignored = List (
-    "object",
   )
 
   passing map ( t =>

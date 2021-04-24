@@ -8,27 +8,37 @@ import matchers._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 
-class If extends AnyFunSuite with should.Matchers {
+class Super extends AnyFunSuite with should.Matchers {
 
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "dangling_else",
-    "else",
-    "if",
-    "truth",
+    "bound_method",
+    "call_other_method",
+    "call_same_method",
+    "closure",
+    "constructor",
+    "extra_arguments",
+    "indirectly_inherited",
+    "missing_arguments",
+    "no_superclass_bind",
+    "no_superclass_call",
+    "no_superclass_method",
+    "reassign_superclass",
+    "super_at_top_level",
+    "super_in_closure_in_inherited_method",
+    "super_in_inherited_method",
+    "super_in_top_level_function",
   )
 
   val failing = List (
-    "var_in_then",
-    "var_in_else",
-    "fun_in_then",
-    "fun_in_else",
-    "class_in_else",
-    "class_in_then",
+    "super_without_name",
+    "super_without_dot",
+    "parenthesized",
   )
 
   val ignored = List (
+    "this_in_superclass_method",
   )
 
 
