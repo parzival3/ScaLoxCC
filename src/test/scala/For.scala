@@ -8,27 +8,28 @@ import matchers._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 
-class If extends AnyFunSuite with should.Matchers {
+class For extends AnyFunSuite with should.Matchers {
 
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "dangling_else",
-    "else",
-    "if",
-    "truth",
+    "closure_in_body",
+    "return_closure",
+    "return_inside",
+    "scope",
+    "syntax",
   )
 
   val failing = List (
-    "var_in_then",
-    "var_in_else",
-    "fun_in_then",
-    "fun_in_else",
+    "var_in_body",
+    "statement_initializer",
+    "statement_increment",
+    "statement_condition",
+    "class_in_body",
+    "fun_in_body",
   )
 
   val ignored = List (
-    "class_in_else",
-    "class_in_then",
   )
 
 

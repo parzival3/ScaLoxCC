@@ -13,13 +13,14 @@ class Bool extends AnyFunSuite with should.Matchers {
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "equality",
-    "not"
   )
 
   val failing = List ()
 
-  val ignored = List ()
+  val ignored = List (
+    "equality",
+    "not"
+  )
 
 
   passing map ( t =>
@@ -41,12 +42,12 @@ class Bool extends AnyFunSuite with should.Matchers {
     }
   )
 
-  ignored map ( t =>
-    ignore(s"Test fail parser assignment $name : $t ") {
-        val stream = new java.io.ByteArrayOutputStream()
-        val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
-        assert(!Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit().isEmpty())
-    }
-  )
+  // ignored map ( t =>
+  //   ignore(s"Test fail parser assignment $name : $t ") {
+  //       val stream = new java.io.ByteArrayOutputStream()
+  //       val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
+  //       assert(!Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit().isEmpty())
+  //   }
+  // )
 
 }
