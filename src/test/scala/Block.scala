@@ -13,13 +13,13 @@ class Block extends AnyFunSuite with should.Matchers {
   val name = this.toString().toLowerCase()
 
   val passing = List (
+    "scope",
+    "empty",
   )
 
   val failing = List ()
 
   val ignored = List (
-    "empty.lox",
-    "scope.lox",
   )
 
   passing map ( t =>
@@ -42,7 +42,7 @@ class Block extends AnyFunSuite with should.Matchers {
   )
 
   ignored map ( t =>
-    ignore(s"Test fail parser assignment $name : $t ") {
+    ignore(s"Test ignored parser assignment $name : $t ") {
         val stream = new java.io.ByteArrayOutputStream()
         val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
         assert(!Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit().isEmpty())

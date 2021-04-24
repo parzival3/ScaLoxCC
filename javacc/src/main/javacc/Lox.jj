@@ -1,3 +1,7 @@
+options {
+//  DEBUG_PARSER =true;
+}
+
 PARSER_BEGIN(Parser)
 package io.github.parzival3.scaloxcc.javacc;
 
@@ -77,15 +81,14 @@ List<Stmt> compilationUnit() : { List<Stmt> statements = new ArrayList<>(); Stmt
 }
 
 Stmt declaration() : { Stmt s = null; } {
-    s = classDeclaration()
-    | s = methodDeclaration()
-    | s = variableDeclarator()
-    | <SEMICOLON>
-    { return s; }
+    //s = classDeclaration() {return s;}
+   s = functionDeclaration() { return s; }
+   | s = variableDeclarator() { return s; }
+   | s = statement() { return s; }
 }
 
 Stmt classDeclaration() : { Stmt s = null; Token i = null; Token d = null; List<Stmt> b = new ArrayList<>(); } {
-    <CLASS> i = <IDENTIFIER> [ <LESS> d = <IDENTIFIER> ] b = classBody()
+    "class" i = <IDENTIFIER> [ "<" d = <IDENTIFIER> ] b = classBody()
     {
         TokenInstance identifier = new TokenInstance(TokenType.IDENTIFIER, i.image, scala.Option.apply(null));
         TokenInstance derived = new TokenInstance(TokenType.IDENTIFIER, d.image, scala.Option.apply(null));
@@ -95,7 +98,7 @@ Stmt classDeclaration() : { Stmt s = null; Token i = null; Token d = null; List<
 }
 
 List<Stmt> classBody() : { Stmt s; List<Stmt> b = new ArrayList<Stmt>(); } {
-    <LEFT_BRACE> ( s = classBodyDeclaration() { b.add(s); } )* <RIGHT_BRACE>
+    "{" ( s = classBodyDeclaration() { b.add(s); } )* "}"
     { return b; }
 }
 
@@ -104,8 +107,12 @@ Stmt classBodyDeclaration() : { Stmt m; } {
     { return m; }
 }
 
+Stmt functionDeclaration() : {Stmt s;} {
+    "fun" s = methodDeclaration() { return s; }
+}
+
 Stmt methodDeclaration() : { Token name; List<TokenInstance> params = new ArrayList<TokenInstance>(); List<Stmt> b = new ArrayList<Stmt>(); } {
-    <LEFT_BRACE> name = <IDENTIFIER> params = methodDeclarator() ( b = block() | <SEMICOLON> )
+    name = <IDENTIFIER> params = methodDeclarator() b = block()
     {
         TokenInstance fName = new TokenInstance(TokenType.IDENTIFIER, name.image, scala.Option.apply(null));
         return new Function(fName, params, b);
@@ -118,7 +125,8 @@ List<TokenInstance> methodDeclarator() : { List<TokenInstance> params = new Arra
 }
 
 List<TokenInstance> formalParameters() : { TokenInstance param;  List<TokenInstance> params = new ArrayList<TokenInstance>(); } {
-    <LEFT_PAREN> [ param = formalParameter() { params.add(param); } ( <COMMA> param = formalParameter() { params.add(param); } )* ] <RIGHT_PAREN>
+
+    "(" [ param = formalParameter() { params.add(param); } ( "," param = formalParameter() { params.add(param); } )* ] ")"
     { return params; }
 }
 
@@ -128,50 +136,112 @@ TokenInstance formalParameter() : { Token param; } {
 }
 
 List<Stmt> block() : { List<Stmt> statements = new ArrayList<Stmt>(); Stmt s = null; } {
-    <LEFT_BRACE> ( s = declaration() { statements.add(s); })* <RIGHT_BRACE>
+    "{" ( s = declaration() { statements.add(s); })* "}"
     { return statements; }
 }
 
 Stmt variableDeclarator() : { Token n; Expr init = null; } {
-    <VAR> n = <IDENTIFIER> [ <EQUAL> init = expression() ] <SEMICOLON>
+    <VAR> n = <IDENTIFIER> [ "=" init = expression() ] ";"
     {
-        TokenInstance name = new TokenInstance(TokenType.IDENTIFIER, name.image, scala.Option.apply(null));
+        TokenInstance name = new TokenInstance(TokenType.IDENTIFIER, n.image, scala.Option.apply(null));
         return new Var(name, init);
     }
+}
+
+Stmt statement() :  { Stmt s; } {
+    s = exprStmt() { return s; }
+    | s = forStmt() { return s; }
+    | s = ifStmt() { return s; }
+    | s = printStmt() { return s; }
+    | s = returnStmt() { return s; }
+    | s = whileStmt() { return s; }
+    | s = blockStmt() { return s; }
+}
+
+Stmt exprStmt() : { Expr e; } {
+    e = expression()  ";" { return new Expression(e); }
+}
+
+Stmt forInitializer() : { Stmt i; } {
+    // TODO: why the semicollon needs to be here?
+    (i = variableDeclarator() { return i; } | i = exprStmt() { return i; } | ";" { return null; })
+    { return null; }
+}
+
+Stmt forStmt() : { Stmt i = null; Expr ep = null; Expr inc = null; Stmt body = null; } {
+    "for" "(" ( i = forInitializer() )  [ ep = expression() ] ";" [ inc = expression() ] ")" body = statement()
+    {
+        if (inc != null) {
+            body = new Block(Arrays.asList(body, i));
+        }
+        TokenInstance t = new TokenInstance(TokenType.TRUE, "true", scala.Option.apply(true));
+        if (ep == null) ep = new Literal(t);
+        body = new While(ep, body);
+        if (i != null) {
+            body = new Block(Arrays.asList(i, body));
+        }
+        return body;
+    }
+}
+
+Stmt ifStmt() : { Expr e; Stmt ifB; Stmt elseB = null;} {
+    // LOOKAHEAD needed https://www.cs.purdue.edu/homes/hosking/javacc/doc/lookahead.html
+    "if" "(" e = expression() ")" ifB = statement() [ LOOKAHEAD(1) "else" elseB = statement() ] { return new If(e, ifB, scala.Option.apply(elseB)); }
+}
+
+
+Stmt printStmt() : { Expr e; } {
+    "print" e = expression()  ";" { return new Expression(e); }
+}
+
+Stmt returnStmt() : { Expr e = null; } {
+    "return" [ e = expression() ]  ";"
+    {
+        TokenInstance t = new TokenInstance(TokenType.RETURN, "return", scala.Option.apply(null));
+        return new Return(t, e);
+    }
+}
+
+Stmt whileStmt() : { Expr e; Stmt s; } {
+   "while" "(" e = expression() ")" s = statement() { return new While(e, s); }
+}
+
+Stmt blockStmt() : { List<Stmt> b = new ArrayList<Stmt>(); } {
+    b = block() { return new Block(b); }
 }
 
 Expr expression() : { Expr e; } {
     e = assignment() { return e; }
 }
 
-Expr assignment() : { Expr c = null; Token t; Expr a; Expr o; } {
-   [ c = call() <DOT> ] t <IDENTIFIER> <EQUAL> a = assignement()
-    | o = logicOr():
+Expr assignment() : { Expr c = null; Token t = null; Expr a = null; Expr o = null; } {
+   //[ c = call() "." ] t = <IDENTIFIER> "=" a = assignment()
+   LOOKAHEAD(2)
+   t = <IDENTIFIER> "=" a = assignment()
     {
-        if ( c == null && a == null ) {
-           return o;
-        } else if ( c == null ) {
+        if ( c == null ) {
            TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
-           return new Assignment(i, a);
+           return new Assign(i, a);
         } else {
            TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
            return new Set(c, i, a);
         }
     }
+   | o = logicOr() { return o;}
 }
 
 Expr logicOr() : { Expr left; Expr right; TokenInstance t = new TokenInstance(TokenType.OR, "or", scala.Option.apply(null)); } {
-    left = logicAnd() ( <OR> right = logicAnd() { left = new Logical(left, e, right); } )*
+    left = logicAnd() ( "or" right = logicAnd() { left = new Logical(left, t, right); } )*
     { return left; }
 }
 
 Expr logicAnd() : { Expr left; Expr right; TokenInstance t = new TokenInstance(TokenType.AND, "and", scala.Option.apply(null)); } {
-    left = equality() ( <AND> right = equality() { left = new Logical(left, e, right); } )*
+    left = equality() ( "and" right = equality() { left = new Logical(left, t, right); } )*
     { return left; }
 }
 
-Expr equality() : { Expr left; Expr right; Token t } {
-    left = comparsion() ( ( t = <BANG_EQUAL> | t = <EQUAL_EQUAL> ) right = comparsion()
+Expr equality() : { Expr left; Expr right; Token t; } {
+    left = comparsion() ( ( t = "!=" | t = "==" ) right = comparsion()
                           {
                               TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
                               left = new Binary(left, token, right);
@@ -180,7 +250,7 @@ Expr equality() : { Expr left; Expr right; Token t } {
 }
 
 Expr comparsion() : { Expr left; Expr right; Token t; } {
-    left = comparsion() ( ( t = <LESS> | t = <LESS_EQUAL> | t = <GREATER> | t = <GREATER_EQUAL> ) right = comparsion()
+    left = term() ( ( t = "<" | t = "<=" | t = ">" | t = ">=" ) right = term()
                           {
                               TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
                               left = new Binary(left, token, right);
@@ -189,7 +259,7 @@ Expr comparsion() : { Expr left; Expr right; Token t; } {
 }
 
 Expr term() : { Expr left; Expr right; Token t; } {
-   left = factor() ( ( t = <MINUS> | t = <PLUS> ) right = factor() {
+   left = factor() ( ( t = "-" | t = "+" ) right = factor() {
            TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
            left = new Binary(left, token, right);
        } )*
@@ -197,48 +267,54 @@ Expr term() : { Expr left; Expr right; Token t; } {
 }
 
 Expr factor() : { Expr left; Expr right; Token t; } {
-   left = unary() ( ( t = <SLASH> | t = <START> ) right = factor() {
+   left = unary() (  t = factorToken() right = unary() {
            TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
            left = new Binary(left, token, right);
        } )*
    { return left; }
 }
 
-Expr unary() : { Expr e; Expr right; Token t = null; } {
-   ( t = <BANG> | t = <MINUS> ) e = unary()
-   | e = call()
-   {
-       if (t == null) {
-           return e;
-       } else {
-           TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
-           return new Unary(token, e);
-       }
-   }
-   { return e; }
+Token factorToken() : { Token t; } {
+      t = "/" { return t; }
+    | t = "*" { return t; }
 }
 
-Expr call() : { Expr e; List<TokenInstance> params = new ArrayList<TokenInstance>(); Token t = null; } {
-   e = primary() ( <LEFT_PAREN> params = methodDeclarator() <RIGHT_PAREN> | <DOT> t = <IDENTIFIER>
-                   {
-                       if ( t = null ) {
-                          e = new Call(e, params);
-                       } else {
+Expr unary() : { Expr e; Expr right; Token t = null; } {
+   ( t = "!" | t = "-" ) e = unary()
+   {
+        TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
+        return new Unary(token, e);
+   }
+   | e = call() { return e; }
+}
+
+List<Expr> arguments() : { Expr a; List<Expr> args = new ArrayList<Expr>(); } {
+
+    "(" [ a = expression() { args.add(a); } ( "," a = expression() { args.add(a); } )* ] ")"
+    { return args; }
+}
+
+Expr callOrGet(Expr e) : { List<Expr> args = new ArrayList<Expr>(); Token t = null;} {
+    args = arguments() { return  new Call(e, args); }
+    | "." t = <IDENTIFIER> {
                           TokenInstance token = new TokenInstance(TokenInstance.fromLexeme(t.image), t.image, scala.Option.apply(null));
-                          e = new Get(e, token);
-                       }
-                   })*
+                          return new Get(e, token);
+    }
+}
+
+Expr call() : { Expr e; } {
+   e = primary() ( e = callOrGet(e) )*
   { return e; }
 }
 
 Expr primary() : { Expr e = null; Token t = null; } {
-    t = <TRUE> { return new Literal(new TokenInstance(TokenType.TRUE, t.image, scala.Option.apply(true))); }
-    | t = <FALSE>  { return new Literal(new TokenInstance(TokenType.FALSE, t.image, scala.Option.apply(false))); }
-    | t = <NIL>  { return new Literal(new TokenInstance(TokenType.NIL, t.image, scala.Option.apply(null))); }
+    t = "true" { return new Literal(new TokenInstance(TokenType.TRUE, t.image, scala.Option.apply(true))); }
+    | t = "false"  { return new Literal(new TokenInstance(TokenType.FALSE, t.image, scala.Option.apply(false))); }
+    | t = "nil"  { return new Literal(new TokenInstance(TokenType.NIL, t.image, scala.Option.apply(null))); }
     | t = <NUMBER>  { return new Literal(new TokenInstance(TokenType.NUMBER, t.image, scala.Option.apply(Double.parseDouble(t.image)))); }
     | t = <STRING>  { return new Literal(new TokenInstance(TokenType.NUMBER, t.image, scala.Option.apply(t.image))); }
     | t = <IDENTIFIER>  { return new Variable(new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(t.image))); }
-    | <LEFT_PAREN> e = expression() <RIGHT_PAREN> { return e; }
+    | "(" e = expression() ")" { return e; }
     | <THIS> { return new This(new TokenInstance(TokenType.THIS, t.image, scala.Option.apply(null))); }
-    | <SUPER> <DOT> t = <IDENTIFIER> { return new Super(new TokenInstance(TokenType.SUPER, "super", scala.Option.apply(null)), new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null))); }
+    | "super" "." t = <IDENTIFIER> { return new Super(new TokenInstance(TokenType.SUPER, "super", scala.Option.apply(null)), new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null))); }
 }

@@ -14,25 +14,25 @@ class Function extends AnyFunSuite with should.Matchers {
 
   val passing = List (
     "empty_body",
+    "parameters",
     "extra_arguments",
+    "missing_arguments",
+    "print",
+    "too_many_arguments",
+    "too_many_parameters",
+    "nested_call_with_arguments",
+    "mutual_recursion",
+    "recursion",
+    "local_mutual_recursion",
+    "local_recursion",
   )
 
   val failing = List (
     "body_must_be_block",
+    "missing_comma_in_parameters",
   )
 
   val ignored = List (
-    "local_mutual_recursion",
-    "local_recursion",
-    "missing_arguments",
-    "missing_comma_in_parameters",
-    "mutual_recursion",
-    "nested_call_with_arguments",
-    "parameters",
-    "print",
-    "recursion",
-    "too_many_arguments",
-    "too_many_parameters",
   )
 
   passing map ( t =>
@@ -55,7 +55,7 @@ class Function extends AnyFunSuite with should.Matchers {
   )
 
   ignored map ( t =>
-    ignore(s"Test fail parser assignment $name : $t ") {
+    ignore(s"Test ignored parser assignment $name : $t ") {
         val stream = new java.io.ByteArrayOutputStream()
         val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
         assert(Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit().isEmpty())

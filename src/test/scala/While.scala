@@ -8,27 +8,24 @@ import matchers._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 
-class If extends AnyFunSuite with should.Matchers {
+class While extends AnyFunSuite with should.Matchers {
 
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "dangling_else",
-    "else",
-    "if",
-    "truth",
+    "closure_in_body",
+    "return_closure",
+    "return_inside",
+    "syntax",
   )
 
   val failing = List (
-    "var_in_then",
-    "var_in_else",
-    "fun_in_then",
-    "fun_in_else",
+    "fun_in_body",
+    "var_in_body",
+    "class_in_body",
   )
 
   val ignored = List (
-    "class_in_else",
-    "class_in_then",
   )
 
 
@@ -52,7 +49,7 @@ class If extends AnyFunSuite with should.Matchers {
   )
 
   ignored map ( t =>
-    ignore(s"Test ignored parser assignment $name : $t ") {
+    ignore(s"Test fail parser assignment $name : $t ") {
         val stream = new java.io.ByteArrayOutputStream()
         val programFile : Iterator[String] = Source.fromResource(s"$name/$t.lox").getLines
         assert(!Parser(new java.io.StringReader(programFile.mkString("\n"))).compilationUnit().isEmpty())
