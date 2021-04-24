@@ -24,10 +24,10 @@ class Assignment extends AnyFunSuite with should.Matchers {
    "prefix_operator",
    "infix_operator",
    "grouping",
+   "to_this"
   )
 
   val ignored = List (
-   "to_this"
   )
 
   passing map ( t =>

@@ -8,27 +8,28 @@ import matchers._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.io.Source
 
-class If extends AnyFunSuite with should.Matchers {
+class Constructor extends AnyFunSuite with should.Matchers {
 
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "dangling_else",
-    "else",
-    "if",
-    "truth",
+    "call_init_early_return",
+    "default",
+    "default_arguments",
+    "early_return",
+    "missing_arguments",
+    "return_in_nested_function",
+    "return_value",
   )
 
   val failing = List (
-    "var_in_then",
-    "var_in_else",
-    "fun_in_then",
-    "fun_in_else",
-    "class_in_else",
-    "class_in_then",
   )
 
   val ignored = List (
+    "arguments",
+    "call_init_explicitly",
+    "extra_arguments",
+    "init_not_method",
   )
 
 

@@ -2,7 +2,7 @@ package io.github.parzival3.scaloxcc.ast
 
 sealed trait Stmt
 case class Block(statements: java.util.List[Stmt]) extends Stmt
-case class LoxClass(name: TokenInstance, superclass: Variable, methods: java.util.List[Stmt]) extends Stmt
+case class LoxClass(name: TokenInstance, superclass: Option[Variable], methods: java.util.List[Stmt]) extends Stmt
 case class Print(expr: Expr) extends Stmt
 case class Expression(expr: Expr) extends Stmt
 case class Var(name: TokenInstance, expr: Expr) extends Stmt
