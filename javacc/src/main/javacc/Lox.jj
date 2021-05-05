@@ -1,5 +1,5 @@
 options {
-//  DEBUG_PARSER =true;
+ // DEBUG_PARSER =true;
 }
 
 PARSER_BEGIN(Parser)
@@ -218,17 +218,19 @@ Expr expression() : { Expr e; } {
 }
 
 Expr assignment() : { Expr c = null; Token t = null; Expr a = null; Expr o = null; } {
-   //[ c = call() "." ] t = <IDENTIFIER> "=" a = assignment()
-   LOOKAHEAD(2)
-   t = <IDENTIFIER> "=" a = assignment()
+    // [  c = call() "." ]
+    // TODO : remember to use call instead of primary
+    // LOOKAHEAD(2) [  c = primary() "." ]
+    LOOKAHEAD(2)
+    t = <IDENTIFIER> "=" a = assignment()
     {
-        if ( c == null ) {
-           TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
-           return new Assign(i, a);
-        } else {
-           TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
-           return new Set(c, i, a);
-        }
+        TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
+        return new Set(c, i, a);
+        // if ( c == null ) {
+        //    TokenInstance i = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
+        //    return new Assign(i, a);
+        // } else {
+        // }
     }
    | o = logicOr() { return o;}
 }
@@ -293,7 +295,7 @@ List<Expr> arguments() : { Expr a; List<Expr> args = new ArrayList<Expr>(); } {
 }
 
 Expr callOrGet(Expr e) : { List<Expr> args = new ArrayList<Expr>(); Token t = null;} {
-    args = arguments() { return  new Call(e, args); }
+    LOOKAHEAD(2) args = arguments() { return  new Call(e, args); }
     | "." t = <IDENTIFIER> {
                           TokenInstance token = new TokenInstance(TokenType.IDENTIFIER, t.image, scala.Option.apply(null));
                           return new Get(e, token);
