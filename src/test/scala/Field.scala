@@ -13,13 +13,13 @@ class Field extends AnyFunSuite with should.Matchers {
   val name = this.toString().toLowerCase()
 
   val passing = List (
-    "call_function_field",
   )
 
   val failing = List (
   )
 
   val ignored = List (
+    "call_function_field",
     "call_nonfunction_field",
     "get_and_set_method",
     "get_on_bool",
